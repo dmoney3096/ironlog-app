@@ -20,6 +20,46 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [expandDay, setExpandDay] = useState(null)
   const [dark, setDark] = useState(false)
+  const [saveInput, setSaveInput] = useState('')
+  const [saveStatus, setSaveStatus] = useState(null)
+  const [saveLoading, setSaveLoading] = useState(false)
+
+  async function handleSave() {
+    if (!saveInput.trim()) return
+    setSaveLoading(true)
+    setSaveStatus(null)
+    try {
+      const data = JSON.parse(saveInput.trim())
+      const res = await fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      const result = await res.json()
+      if (result.success) {
+        setSaveStatus({ type: 'ok', msg: `✓ Saved! Tap Today or History to see it.` })
+        setSaveInput('')
+        fetchData()
+      } else {
+        setSaveStatus({ type: 'err', msg: result.error || 'Save failed' })
+      }
+    } catch (e) {
+      setSaveStatus({ type: 'err', msg: 'Invalid format — paste the exact JSON from Claude' })
+    }
+    setSaveLoading(false)
+  }
+
+  function loadTestData() {
+    setSaveInput(JSON.stringify({
+      date: new Date().toISOString().slice(0, 10),
+      weight: 156.8, weight_unit: 'lbs',
+      workouts: [{ exercise: 'Test Exercise', sets: 3, reps: 10, weight: 100, unit: 'lbs', muscle: 'Chest' }],
+      cardio: [{ type: 'Treadmill', duration: 20, settings: '12% incline, 3mph' }],
+      foods: [{ name: 'Chicken Potatoes Veggies', calories: 450, protein: 56, carbs: 39, fat: 6 }],
+      calories: 450, protein: 56, carbs: 39, fat: 6,
+      final_log: { grade: 'A', headline: 'Test Entry', cutProgress: 'Test entry.', trainerNote: 'Pipeline working.', highlight: 'App connected.', tomorrowFocus: 'Log real data.' }
+    }, null, 2))
+  }
 
   useEffect(() => { fetchData() }, [])
 
@@ -68,6 +108,7 @@ export default function Dashboard() {
     { id: 'stats', label: '📈 Stats' },
     { id: 'prs', label: '🏆 PRs' },
     { id: 'history', label: '📅 History' },
+    { id: 'save', label: '💾 Save' },
   ]
 
   return (
@@ -383,6 +424,47 @@ export default function Dashboard() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+        {/* SAVE TAB */}
+        {!loading && tab === 'save' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ background: '#fff4ee', border: '1px solid #fbd0b0', borderRadius: 12, padding: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#e85c00', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>HOW TO LOG</div>
+              <div style={{ fontSize: 13, color: '#555', lineHeight: 1.8 }}>
+                1. Type <strong>FINAL LOG</strong> in Claude chat<br />
+                2. Copy the JSON block Claude gives you<br />
+                3. Paste it below and tap Save
+              </div>
+            </div>
+            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 14, padding: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>PASTE LOG DATA</div>
+              <textarea
+                value={saveInput}
+                onChange={e => setSaveInput(e.target.value)}
+                placeholder={'{\n  "date": "2026-05-27",\n  "weight": 156.8,\n  ...\n}'}
+                style={{ width: '100%', minHeight: 180, background: dark ? '#222' : '#f9f9f9', border: `1px solid ${border}`, borderRadius: 10, padding: '11px 12px', fontSize: 13, fontFamily: 'monospace', outline: 'none', resize: 'vertical', lineHeight: 1.6, color: text }}
+              />
+              <button
+                onClick={handleSave}
+                disabled={saveLoading || !saveInput.trim()}
+                style={{ width: '100%', marginTop: 10, background: '#e85c00', border: 'none', borderRadius: 12, color: '#fff', fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 700, padding: 14, cursor: 'pointer', opacity: saveLoading || !saveInput.trim() ? .4 : 1 }}
+              >
+                {saveLoading ? 'Saving...' : 'Save to Dashboard →'}
+              </button>
+            </div>
+            {saveStatus && (
+              <div style={{ padding: '12px 14px', borderRadius: 12, fontSize: 14, fontWeight: 500, background: saveStatus.type === 'ok' ? '#f0fdf4' : '#fef2f2', color: saveStatus.type === 'ok' ? '#166534' : '#991b1b', border: `1px solid ${saveStatus.type === 'ok' ? '#bbf7d0' : '#fecaca'}` }}>
+                {saveStatus.msg}
+              </div>
+            )}
+            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 14, padding: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>QUICK TEST</div>
+              <button onClick={loadTestData} style={{ width: '100%', background: dark ? '#222' : '#f4f4f4', border: `1px solid ${border}`, borderRadius: 10, padding: 12, fontSize: 13, fontWeight: 600, color: dark ? '#aaa' : '#555', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                Load Test Data
+              </button>
+              <div style={{ fontSize: 11, color: muted, marginTop: 6, textAlign: 'center' }}>Tap to load sample, then Save to test</div>
+            </div>
           </div>
         )}
       </div>
