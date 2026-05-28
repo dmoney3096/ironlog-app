@@ -81,11 +81,14 @@ export default function Dashboard() {
     carb: a.carb + (f.carbs || 0), fat: a.fat + (f.fat || 0)
   }), { cal: 0, pro: 0, carb: 0, fat: 0 })
 
-  const recentLogs = [...logs].slice(0, 14).reverse()
+  const [chartRange, setChartRange] = useState('all')
+
+  const rangeMap = { '2w': 14, '1m': 30, '3m': 90, 'all': 9999 }
+  const recentLogs = [...logs].slice(0, rangeMap[chartRange]).reverse()
   const weightData = recentLogs.filter(l => l.weight).map(l => ({ date: fmtShort(l.date), weight: l.weight }))
-  const calData = recentLogs.map(l => ({ date: fmtShort(l.date), calories: l.calories || 0 }))
-  const proData = recentLogs.map(l => ({ date: fmtShort(l.date), protein: l.protein || 0 }))
-  const volData = recentLogs.map(l => ({ date: fmtShort(l.date), sets: (l.workouts || []).length }))
+  const calData = recentLogs.filter(l => l.calories > 0).map(l => ({ date: fmtShort(l.date), calories: l.calories || 0 }))
+  const proData = recentLogs.filter(l => l.protein > 0).map(l => ({ date: fmtShort(l.date), protein: l.protein || 0 }))
+  const volData = recentLogs.filter(l => (l.workouts||[]).length > 0).map(l => ({ date: fmtShort(l.date), sets: (l.workouts || []).length }))
 
   const last7 = logs.slice(0, 7)
   const avgCal = last7.length ? Math.round(last7.reduce((a, l) => a + (l.calories || 0), 0) / last7.length) : 0
@@ -304,6 +307,12 @@ export default function Dashboard() {
               </div>
             </Card>
             <ChartCard title="Weight Trend" card={card} border={border}>
+              {/* Range selector */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+                {[['2w','2 Weeks'],['1m','1 Month'],['3m','3 Months'],['all','All Time']].map(([val, lbl]) => (
+                  <button key={val} onClick={() => setChartRange(val)} style={{ flex: 1, padding: '5px 0', fontSize: 11, fontWeight: 700, border: `1px solid ${chartRange === val ? '#e85c00' : border}`, borderRadius: 7, background: chartRange === val ? '#e85c00' : card, color: chartRange === val ? '#fff' : muted, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>{lbl}</button>
+                ))}
+              </div>
               {weightData.length > 1 ? (
                 <ResponsiveContainer width="100%" height={150}>
                   <LineChart data={weightData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
