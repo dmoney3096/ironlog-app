@@ -7,24 +7,27 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { date, ...data } = req.body
-    if (!date) return res.status(400).json({ error: 'Date required' })
+    const body = req.body
+    const entries = Array.isArray(body) ? body : [body]
 
-    // Upsert — insert or update if date exists
-    const { data: result, error } = await supabase
+    // Validate all entries have dates
+    for (const entry of entries) {
+      if (!entry.date) return res.status(400).json({ error: 'Date required for all entries' })
+    }
+
+    const { data, error } = await supabase
       .from('logs')
-      .upsert({ date, ...data }, { onConflict: 'date' })
+      .upsert(entries, { onConflict: 'date' })
       .select()
 
     if (error) return res.status(500).json({ error: error.message })
-    return res.status(200).json({ success: true, data: result })
+    return res.status(200).json({ success: true, data, count: entries.length })
   }
 
   if (req.method === 'GET') {
     const { date } = req.query
     let query = supabase.from('logs').select('*').order('date', { ascending: false })
     if (date) query = query.eq('date', date)
-
     const { data, error } = await query
     if (error) return res.status(500).json({ error: error.message })
     return res.status(200).json(data)
