@@ -97,8 +97,13 @@ export default function Dashboard() {
   const weights = last7.filter(l => l.weight).map(l => l.weight)
   const weightChange = weights.length >= 2 ? (weights[0] - weights[weights.length - 1]).toFixed(1) : null
 
-  const totalDeficit = logs.reduce((a, l) => a + (l.calories > 0 ? T.calories - l.calories : 0), 0)
+  const CUT_START = '2026-03-20'
+  const cutLogs = logs.filter(l => l.date >= CUT_START)
+  const totalDeficit = cutLogs.reduce((a, l) => a + (l.calories > 0 ? T.calories - l.calories : 0), 0)
   const lbsBurned = (totalDeficit / 3500).toFixed(1)
+  const cutStartWeight = 169.6
+  const latestWeight = logs.filter(l => l.weight).find(l => l.weight)?.weight || cutStartWeight
+  const actualLbsLost = (cutStartWeight - latestWeight).toFixed(1)
 
   const bg = dark ? '#111' : '#f4f4f4'
   const card = dark ? '#1a1a1a' : '#fff'
@@ -271,23 +276,25 @@ export default function Dashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {/* Vegas tracker */}
             <Card card={card} border={border}>
-              <Label color={muted}>🎯 VEGAS CUT TRACKER</Label>
+              <Label color={muted}>🎯 VEGAS CUT TRACKER — Since Mar 20</Label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
                 {[
-                  { val: lbsBurned, lbl: 'lbs burned (est)' },
-                  { val: daysUntilVegas(), lbl: 'days remaining' },
-                  { val: logs.length, lbl: 'days logged' },
-                  { val: totalDeficit.toLocaleString(), lbl: 'total deficit (kcal)' },
+                  { val: `${actualLbsLost} lbs`, lbl: 'actual lost', color: '#16a34a' },
+                  { val: daysUntilVegas(), lbl: 'days to Vegas' },
+                  { val: cutLogs.length, lbl: 'cut days logged' },
+                  { val: Math.abs(totalDeficit).toLocaleString(), lbl: 'total deficit (kcal)' },
                 ].map((s, i) => (
                   <div key={i} style={{ background: dark ? '#222' : '#f9f9f9', borderRadius: 10, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: '#e85c00' }}>{s.val}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: s.color || '#e85c00' }}>{s.val}</div>
                     <div style={{ fontSize: 10, color: muted, fontWeight: 600, textTransform: 'uppercase', marginTop: 2 }}>{s.lbl}</div>
                   </div>
                 ))}
               </div>
+              <div style={{ fontSize: 12, color: muted, marginBottom: 8 }}>Start: 169.6 lbs → Current: {latestWeight} lbs</div>
               <div style={{ height: 8, background: border, borderRadius: 6 }}>
-                <div style={{ height: '100%', width: `${Math.min(100, (logs.length / (logs.length + daysUntilVegas())) * 100)}%`, background: '#e85c00', borderRadius: 6 }} />
+                <div style={{ height: '100%', width: `${Math.min(100, (cutLogs.length / (cutLogs.length + daysUntilVegas())) * 100)}%`, background: '#e85c00', borderRadius: 6 }} />
               </div>
+              <div style={{ fontSize: 11, color: muted, textAlign: 'right', marginTop: 4 }}>{cutLogs.length} days logged of {cutLogs.length + daysUntilVegas()} total cut days</div>
             </Card>
             {/* Weekly summary */}
             <Card card={card} border={border}>
